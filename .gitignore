@@ -40,3 +40,5 @@ yarn-error.log*
 **/*.log
 package-lock.json
 **/*.bun
+# Snyk Security Extension - AI Rules (auto-generated)
+.cursor/rules/snyk_rules.mdc
