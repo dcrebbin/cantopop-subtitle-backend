@@ -6,7 +6,11 @@
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
-    "elysia": "latest"
+    "@huggingface/inference": "^4.13.3",
+    "@types/xmldom": "^0.1.34",
+    "ai": "^5.0.92",
+    "elysia": "latest",
+    "xmldom": "^0.6.0"
   },
   "devDependencies": {
     "bun-types": "latest"

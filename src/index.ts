@@ -4,7 +4,7 @@ import { youtube } from "./youtube";
 const app = new Elysia()
   .get("/", () => "Hello Elysia")
   .use(youtube)
-  .listen(3000);
+  .listen(4000);
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
