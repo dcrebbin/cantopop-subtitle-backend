@@ -164,3 +164,59 @@ function convertXmlToSrt(xml: string): string {
 
   return srtLines.join("\n").trim();
 }
+
+export async function mergeSubtitles(video_id: string, language: string) {
+  const englishSubtitles = await retrieveSubtitles(video_id, "en");
+  const chineseSubtitles = await retrieveSubtitles(video_id, language);
+  const englishSubtitlesLines = englishSubtitles.split("\n");
+  const chineseSubtitlesLines = chineseSubtitles.split("\n");
+  const mergedSubtitlesLines: string[] = [];
+
+  function groupSrtBlocks(lines: string[]): string[][] {
+    const blocks: string[][] = [];
+    let current: string[] = [];
+    for (const line of lines) {
+      if (line.trim() === "") {
+        if (current.length > 0) {
+          blocks.push(current);
+          current = [];
+        }
+      } else {
+        current.push(line);
+      }
+    }
+    if (current.length > 0) {
+      blocks.push(current);
+    }
+    return blocks;
+  }
+
+  const englishBlocks = groupSrtBlocks(englishSubtitlesLines);
+  const chineseBlocks = groupSrtBlocks(chineseSubtitlesLines);
+
+  for (
+    let i = 0;
+    i < Math.min(englishBlocks.length, chineseBlocks.length);
+    i++
+  ) {
+    const enBlock = englishBlocks[i];
+    const zhBlock = chineseBlocks[i];
+
+    mergedSubtitlesLines.push(enBlock[0]); // number
+    mergedSubtitlesLines.push(enBlock[1]); // timing
+
+    for (let j = 2; j < enBlock.length; j++) {
+      if (enBlock[j].trim() !== "") {
+        mergedSubtitlesLines.push(`(en) ${enBlock[j]}`);
+      }
+    }
+    for (let j = 2; j < zhBlock.length; j++) {
+      if (zhBlock[j].trim() !== "" && zhBlock[j].trim() !== enBlock[j].trim()) {
+        const languageCode = language === "yue" ? "yue" : "zh";
+        mergedSubtitlesLines.push(`(${languageCode}) ${zhBlock[j]}`);
+      }
+    }
+    mergedSubtitlesLines.push("");
+  }
+  return mergedSubtitlesLines.join("\n");
+}

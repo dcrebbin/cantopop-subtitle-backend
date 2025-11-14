@@ -1,5 +1,9 @@
 import { Elysia } from "elysia";
-import { retrieveSubtitles, retrieveVideoClient } from "./service";
+import {
+  mergeSubtitles,
+  retrieveSubtitles,
+  retrieveVideoClient,
+} from "./service";
 import type { YouTubeResponse } from "./model";
 import {
   openAIRequestChunking,
@@ -33,4 +37,12 @@ export const youtube = new Elysia({ prefix: "/youtube" })
       TRANSLATION_SYSTEM_PROMPT
     );
     return translatedSubtitles;
+  })
+  .post("/merge", async ({ body }) => {
+    const { video_id, language } = body as {
+      video_id: string;
+      language: string;
+    };
+    const mergedSubtitles = await mergeSubtitles(video_id, language);
+    return mergedSubtitles;
   });
