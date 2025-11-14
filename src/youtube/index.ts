@@ -1,6 +1,10 @@
 import { Elysia } from "elysia";
 import { retrieveSubtitles, retrieveVideoClient } from "./service";
-import { YouTubeResponse } from "./model";
+import type { YouTubeResponse } from "./model";
+import {
+  openAIRequestChunking,
+  TRANSLATION_SYSTEM_PROMPT,
+} from "../ai/service";
 
 export const youtube = new Elysia({ prefix: "/youtube" })
   .post("/video", async ({ body }) => {
@@ -17,4 +21,16 @@ export const youtube = new Elysia({ prefix: "/youtube" })
     };
     const subtitles = await retrieveSubtitles(video_id, language);
     return subtitles;
+  })
+  .post("/translate", async ({ body }) => {
+    const { video_id, language } = body as {
+      video_id: string;
+      language: string;
+    };
+    const subtitles = await retrieveSubtitles(video_id, language);
+    const translatedSubtitles = await openAIRequestChunking(
+      subtitles,
+      TRANSLATION_SYSTEM_PROMPT
+    );
+    return translatedSubtitles;
   });
