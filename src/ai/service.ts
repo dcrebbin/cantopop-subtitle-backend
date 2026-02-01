@@ -1,5 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
+import fs from "fs/promises";
+import FormData from "form-data";
 
 export const TRANSLATION_SYSTEM_PROMPT = `Return only the transformed SRT file with no additional text, explanations, or formatting.
 
@@ -82,4 +84,68 @@ export async function openAIRequest(
     prompt: `${systemPrompt}\n\n${input}`,
   });
   return text;
+}
+
+interface WhisperResponse {
+  text: string;
+  // You can add more fields if you need verbose_json output
+}
+
+export async function openAIWhisperRequest(
+  video_id: string,
+  model: "whisper-large-v2" | "whisper-large-v3",
+  language: string = "zh"
+): Promise<string> {
+  // Determine endpoint and api key
+  const endpoint =
+    model === "whisper-large-v3"
+      ? "https://api.groq.com/openai/v1/audio/transcriptions"
+      : "https://api.openai.com/v1/audio/transcriptions";
+
+  const api_key =
+    model === "whisper-large-v3"
+      ? process.env.GROQ_API_KEY
+      : process.env.OPENAI_API_KEY;
+
+  if (!api_key) {
+    throw new Error(
+      model === "whisper-large-v3"
+        ? "GROQ_API_KEY must be set"
+        : "OPENAI_API_KEY must be set"
+    );
+  }
+
+  const fileBuffer = await fs.readFile(`./audio/${video_id}.flac`);
+
+  const form = new FormData();
+  form.append("file", fileBuffer, { filename: `${video_id}.flac` });
+
+  if (model === "whisper-large-v3") {
+    form.append("model", "whisper-large-v3");
+    form.append("language", language);
+  } else {
+    form.append("model", "whisper-1");
+    form.append("timestamp_granularities", "segment");
+    form.append("language", language);
+  }
+  form.append("response_format", "verbose_json");
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      ...form.getHeaders(),
+      Authorization: `Bearer ${api_key}`,
+    },
+    body: form as any,
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(
+      `Failed to transcribe audio: ${response.status} ${response.statusText}\n${errText}`
+    );
+  }
+
+  const data: WhisperResponse = await response.json();
+  return data.text;
 }

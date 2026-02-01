@@ -1,13 +1,15 @@
 import { Elysia } from "elysia";
-import { retrieveVideoClient } from "./service";
-import { YouTubeResponse } from "./model";
+import { senseVoice } from "./service";
 
-export const youtube = new Elysia({ prefix: "/youtube" }).get(
-  "/video",
-  async ({ query }) => {
-    console.log("Query:", query);
-    const { video_id } = query as { video_id: string };
-    const response = (await retrieveVideoClient(video_id)) as YouTubeResponse;
+export const huggingface = new Elysia({ prefix: "/huggingface" }).post(
+  "/sense-voice",
+  async ({ body }) => {
+    console.log("Body:", body);
+    const { language, file_path } = body as {
+      language: string;
+      file_path: string;
+    };
+    const response = await senseVoice(language, file_path);
     return response;
   }
 );

@@ -202,8 +202,8 @@ export async function mergeSubtitles(video_id: string, language: string) {
     const enBlock = englishBlocks[i];
     const zhBlock = chineseBlocks[i];
 
-    mergedSubtitlesLines.push(enBlock[0]); // number
-    mergedSubtitlesLines.push(enBlock[1]); // timing
+    mergedSubtitlesLines.push(enBlock[0]);
+    mergedSubtitlesLines.push(enBlock[1]);
 
     for (let j = 2; j < enBlock.length; j++) {
       if (enBlock[j].trim() !== "") {
