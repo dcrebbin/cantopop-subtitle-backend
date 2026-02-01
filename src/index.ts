@@ -1,9 +1,13 @@
 import { Elysia } from "elysia";
 import { youtube } from "./youtube";
+import { huggingface } from "./huggingface";
+import openapi from "@elysiajs/openapi";
 
 const app = new Elysia()
   .get("/", () => "Hello Elysia")
   .use(youtube)
+  .use(huggingface)
+  .use(openapi())
   .listen(4000);
 
 console.log(
