@@ -9,12 +9,19 @@ import {
   openAIRequestChunking,
   TRANSLATION_SYSTEM_PROMPT,
 } from "../ai/service";
+import { downloadVideo } from "./service";
 
 export const youtube = new Elysia({ prefix: "/youtube" })
   .post("/video", async ({ body }) => {
     console.log("Body:", body);
     const { video_id } = body as { video_id: string };
     const response = (await retrieveVideoClient(video_id)) as YouTubeResponse;
+    return response;
+  })
+  .post("/download", async ({ body }) => {
+    console.log("Body:", body);
+    const { video_id } = body as { video_id: string };
+    const response = await downloadVideo(video_id);
     return response;
   })
   .post("/subtitles", async ({ body }) => {

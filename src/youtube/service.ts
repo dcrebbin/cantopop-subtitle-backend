@@ -1,7 +1,8 @@
 // biome-ignore lint/style/useImportType: <explanation>
 import { YouTubeResponse } from "./model";
 import { DOMParser } from "xmldom";
-
+import { exec } from "child_process";
+import { promisify } from "util";
 export async function retrieveVideoClient(
   video_id: string
 ): Promise<YouTubeResponse> {
@@ -219,4 +220,30 @@ export async function mergeSubtitles(video_id: string, language: string) {
     mergedSubtitlesLines.push("");
   }
   return mergedSubtitlesLines.join("\n");
+}
+
+
+const execAsync = promisify(exec);
+
+/**
+ * Downloads a YouTube video using youtube-dl asynchronously.
+ * @param video_id The YouTube video ID.
+ * @returns The stdout from the youtube-dl process.
+ */
+export async function downloadVideo(video_id: string): Promise<string> {
+  if (!video_id) {
+    throw new Error("video_id is required");
+  }
+  const url = `https://www.youtube.com/watch?v=${video_id}`;
+  const command = `./modules/yt-dlp -f bestaudio --extract-audio --verbose --no-geo-bypass --cookies cookies.txt --no-check-certificate -o - | ffmpeg -i pipe: -ar 32000 -ac 1 -map 0:a -c:a flac ./audio/${video_id}.flac`;
+  try {
+    const { stdout, stderr } = await execAsync(command);
+    if (stderr) {
+      // youtube-dl sometimes outputs non-error information to stderr, so don't always throw
+      console.warn("youtube-dl stderr:", stderr);
+    }
+    return stdout;
+  } catch (error: any) {
+    throw new Error(`Failed to download video: ${error.message}`);
+  }
 }
