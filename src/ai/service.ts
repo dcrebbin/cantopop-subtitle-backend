@@ -37,7 +37,7 @@ Translation requirements:
 export async function openAIRequestChunking(
   input: string,
   systemPrompt: string,
-  chunkSize: number = 1250
+  chunkSize: number = 1250,
 ): Promise<string> {
   // Split input into paragraphs (by \n\n)
   const paragraphs = input.split("\n\n");
@@ -66,8 +66,6 @@ export async function openAIRequestChunking(
 
   let result = "";
   for (let i = 0; i < chunks.length; i++) {
-    // Optionally: log processing info
-    // console.log(`Processing chunk ${i + 1}/${chunks.length}`);
     const chunkResult = await openAIRequest(chunks[i], systemPrompt);
     if (result) result += "\n\n";
     result += chunkResult;
@@ -77,10 +75,11 @@ export async function openAIRequestChunking(
 
 export async function openAIRequest(
   input: string,
-  systemPrompt: string
+  systemPrompt: string,
+  model = "gpt-4.1-mini",
 ): Promise<string> {
   const { text } = await generateText({
-    model: openai("gpt-4.1-mini"), // use Vercel AI Gateway
+    model: openai(model), // use Vercel AI Gateway
     prompt: `${systemPrompt}\n\n${input}`,
   });
   return text;
@@ -94,7 +93,7 @@ interface WhisperResponse {
 export async function openAIWhisperRequest(
   video_id: string,
   model: "whisper-large-v2" | "whisper-large-v3",
-  language: string = "zh"
+  language: string = "zh",
 ): Promise<string> {
   // Determine endpoint and api key
   const endpoint =
@@ -111,7 +110,7 @@ export async function openAIWhisperRequest(
     throw new Error(
       model === "whisper-large-v3"
         ? "GROQ_API_KEY must be set"
-        : "OPENAI_API_KEY must be set"
+        : "OPENAI_API_KEY must be set",
     );
   }
 
@@ -142,10 +141,62 @@ export async function openAIWhisperRequest(
   if (!response.ok) {
     const errText = await response.text();
     throw new Error(
-      `Failed to transcribe audio: ${response.status} ${response.statusText}\n${errText}`
+      `Failed to transcribe audio: ${response.status} ${response.statusText}\n${errText}`,
     );
   }
 
   const data: WhisperResponse = await response.json();
   return data.text;
+}
+
+export async function cerebrasRequest(
+  input: string,
+  model = "llama3.1-8b",
+): Promise<string> {
+  console.log("Cerebras request:", input);
+  const apiKey = process.env.CEREBRAS_API_KEY;
+  const proxyUrl = process.env.PROXY_URL;
+  const useProxy = process.env.USE_PROXY;
+  if (!apiKey) {
+    throw new Error("CEREBRAS_API_KEY must be set");
+  }
+
+  const url = useProxy
+    ? `${proxyUrl}?https://api.cerebras.ai/v1/chat/completions`
+    : "https://api.cerebras.ai/v1/chat/completions";
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "llama3.1-8b",
+      stream: false,
+      max_tokens: 2048,
+      temperature: 0.2,
+      top_p: 1,
+      messages: [
+        {
+          role: "system",
+          content: "",
+        },
+        {
+          role: "user",
+          content: input,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(
+      `Failed to query Cerebras API: ${response.status} ${response.statusText}\n${errText}`,
+    );
+  }
+
+  const result: any = await response.json();
+  return result.choices[0].message.content;
 }
