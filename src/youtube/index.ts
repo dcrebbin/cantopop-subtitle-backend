@@ -30,7 +30,12 @@ export const youtube = new Elysia({ prefix: "/youtube" })
       video_id: string;
       language: string;
     };
-    const subtitles = await retrieveSubtitles(video_id, language);
+    const subtitles = await retrieveSubtitles(video_id, language).catch(
+      (error) => {
+        console.error("Error retrieving subtitles:", error);
+        return error;
+      },
+    );
     return subtitles;
   })
   .post("/translate", async ({ body }) => {
@@ -41,7 +46,7 @@ export const youtube = new Elysia({ prefix: "/youtube" })
     const subtitles = await retrieveSubtitles(video_id, language);
     const translatedSubtitles = await openAIRequestChunking(
       subtitles,
-      TRANSLATION_SYSTEM_PROMPT
+      TRANSLATION_SYSTEM_PROMPT,
     );
     return translatedSubtitles;
   })
@@ -52,4 +57,9 @@ export const youtube = new Elysia({ prefix: "/youtube" })
     };
     const mergedSubtitles = await mergeSubtitles(video_id, language);
     return mergedSubtitles;
+  })
+  .post("/client", async ({ body }) => {
+    const { url } = body as { url: string };
+    const response = await retrieveVideoClient(url);
+    return response;
   });

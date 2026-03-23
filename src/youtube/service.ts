@@ -4,7 +4,7 @@ import { DOMParser } from "xmldom";
 import { exec } from "child_process";
 import { promisify } from "util";
 export async function retrieveVideoClient(
-  video_id: string
+  video_id: string,
 ): Promise<YouTubeResponse> {
   console.log("Retrieving video client for video ID:", video_id);
   const response = await fetch(`https://www.youtube.com/youtubei/v1/player`, {
@@ -13,12 +13,11 @@ export async function retrieveVideoClient(
       video_id,
       context: {
         client: {
-          hl: "en",
-          client_name: "WEB",
-          client_version: "2.20241107.11.00",
-        },
-        request: {
-          use_ssl: true,
+          visitorData: process.env.VISITOR_DATA,
+          userAgent:
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7; channel) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36,gzip(gfe)",
+          clientName: "WEB",
+          clientVersion: "2.20260227.01.00",
         },
       },
     }),
@@ -49,7 +48,7 @@ const LANGUAGE_CODE_MAP = {
 
 export async function retrieveSubtitles(
   video_id: string,
-  language: string
+  language: string,
 ): Promise<string> {
   const youtubePlayer = await retrieveVideoClient(video_id);
   const subtitleTrack =
@@ -58,20 +57,25 @@ export async function retrieveSubtitles(
   if (!subtitleTrack) {
     throw new Error("No subtitles found");
   }
+
   const subtitles =
     youtubePlayer.captions?.playerCaptionsTracklistRenderer.captionTracks.find(
       (track) =>
         LANGUAGE_CODE_MAP[
           track.languageCode as keyof typeof LANGUAGE_CODE_MAP
-        ] === language
+        ] === language,
     );
+
+  if (!subtitles) {
+    throw new Error("No subtitles found");
+  }
   const retrievedSubtitles = await fetch(subtitles?.baseUrl ?? "");
   if (!subtitles?.baseUrl) {
     throw new Error("No subtitles found");
   }
   if (!retrievedSubtitles.ok) {
     throw new Error(
-      `Failed to retrieve subtitles: ${retrievedSubtitles.statusText}`
+      `Failed to retrieve subtitles: ${retrievedSubtitles.statusText}`,
     );
   }
   const xmlSubtitles = await retrievedSubtitles.text();
@@ -133,7 +137,7 @@ function convertXmlToSrt(xml: string): string {
             acc[key] = val.replace(/(^"|"$)/g, "");
             return acc;
           },
-          {} as Record<string, string>
+          {} as Record<string, string>,
         );
         // Simulate an element-like object
         textNodes.push({
@@ -159,7 +163,7 @@ function convertXmlToSrt(xml: string): string {
       (idx + 1).toString(),
       `${toSrtTimestamp(start)} --> ${toSrtTimestamp(end)}`,
       content.trim(),
-      ""
+      "",
     );
   });
 
@@ -221,7 +225,6 @@ export async function mergeSubtitles(video_id: string, language: string) {
   }
   return mergedSubtitlesLines.join("\n");
 }
-
 
 const execAsync = promisify(exec);
 
