@@ -10,6 +10,7 @@ import {
   TRANSLATION_SYSTEM_PROMPT,
 } from "../ai/service";
 import { downloadVideo } from "./service";
+import { uploadSrt } from "../azure/service";
 
 export const youtube = new Elysia({ prefix: "/youtube" })
   .post("/video", async ({ body }) => {
@@ -38,16 +39,21 @@ export const youtube = new Elysia({ prefix: "/youtube" })
     );
     return subtitles;
   })
-  .post("/translate", async ({ body }) => {
-    const { video_id, language } = body as {
+  .post("/translate-youtube-video", async ({ body }) => {
+    const { video_id, language, provider, upload_srt } = body as {
       video_id: string;
       language: string;
+      provider: "openai" | "anthropic" | "groq" | "gemini";
+      upload_srt: boolean;
     };
     const subtitles = await retrieveSubtitles(video_id, language);
     const translatedSubtitles = await openAIRequestChunking(
       subtitles,
       TRANSLATION_SYSTEM_PROMPT,
     );
+    if (upload_srt) {
+      await uploadSrt(video_id, translatedSubtitles);
+    }
     return translatedSubtitles;
   })
   .post("/merge", async ({ body }) => {

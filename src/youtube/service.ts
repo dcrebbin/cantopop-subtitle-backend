@@ -58,7 +58,7 @@ export async function retrieveSubtitles(
     throw new Error("No subtitles found");
   }
 
-  const subtitles =
+  let subtitles =
     youtubePlayer.captions?.playerCaptionsTracklistRenderer.captionTracks.find(
       (track) =>
         LANGUAGE_CODE_MAP[
@@ -67,7 +67,14 @@ export async function retrieveSubtitles(
     );
 
   if (!subtitles) {
-    throw new Error("No subtitles found");
+    const englishSubtitles =
+      youtubePlayer.captions?.playerCaptionsTracklistRenderer.captionTracks.find(
+        (track) => track.languageCode.toLowerCase().includes("en"),
+      );
+    if (!englishSubtitles) {
+      throw new Error("No subtitles found");
+    }
+    subtitles = englishSubtitles;
   }
   const retrievedSubtitles = await fetch(subtitles?.baseUrl ?? "");
   if (!subtitles?.baseUrl) {
