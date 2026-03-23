@@ -1,19 +1,10 @@
-import { Elysia } from "elysia";
-import { youtube } from "./youtube";
-import { huggingface } from "./huggingface";
-import openapi from "@elysiajs/openapi";
-import { ai } from "./ai";
-import { azure } from "./azure";
+import cluster from "node:cluster";
+import os from "node:os";
+import process from "node:process";
 
-const app = new Elysia({ prefix: "/api" })
-  .get("/", () => "Hello Elysia")
-  .use(youtube)
-  .use(huggingface)
-  .use(ai)
-  .use(azure)
-  .use(openapi())
-  .listen(process.env.PORT ? parseInt(process.env.PORT) : 4000);
-
-console.log(
-  `🦊 Elysia is running at http://${app.server?.hostname}:${app.server?.port}`,
-);
+if (cluster.isPrimary) {
+  for (let i = 0; i < os.availableParallelism(); i++) cluster.fork();
+} else {
+  await import("./server");
+  console.log(`Worker ${process.pid} started`);
+}
